@@ -1,0 +1,63 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f7f3ee;
+  --foreground: #151516;
+  --surface: #ffffff;
+  --surface-strong: #fbfaf7;
+  --accent: #0f766e;
+  --accent-strong: #0b4d48;
+  --ring: rgba(15, 118, 110, 0.2);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-sans);
+  --font-display: var(--font-display);
+}
+
+body {
+  background:
+    radial-gradient(1200px 600px at 10% -10%, #e6f4f1 0%, transparent 60%),
+    radial-gradient(900px 500px at 90% 10%, #fff1d6 0%, transparent 55%),
+    linear-gradient(180deg, #f7f3ee 0%, #f4efe8 100%);
+  color: var(--foreground);
+  font-family: var(--font-sans), system-ui, sans-serif;
+  min-height: 100vh;
+  position: relative;
+  isolation: isolate;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: radial-gradient(#d9d2c7 1px, transparent 1px);
+  background-size: 120px 120px;
+  opacity: 0.15;
+  pointer-events: none;
+  z-index: -1;
+}
+
+a,
+button,
+label[for],
+[role='button'] {
+  cursor: pointer;
+}
+
+button:disabled,
+[aria-disabled='true'] {
+  cursor: not-allowed;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-display), var(--font-sans), system-ui, sans-serif;
+  letter-spacing: -0.02em;
+}
