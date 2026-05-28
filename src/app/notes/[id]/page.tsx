@@ -9,7 +9,7 @@ export async function generateMetadata({
 }: {
   params: Promise<{ id: string }>
 }): Promise<Metadata> {
-  const { id } = await params  // ← await
+  const { id } = await params
 
   const supabase = await createClient()
 
@@ -32,7 +32,7 @@ export default async function NotePage({
 }: {
   params: Promise<{ id: string }>
 }) {
-  const { id } = await params  // ← await
+  const { id } = await params
 
   const supabase = await createClient()
 
@@ -53,51 +53,22 @@ export default async function NotePage({
     notFound()
   }
 
-  let relatedNotes: Array<{
-    id: string
-    title: string
-    created_at: string
-    cover_image_url?: string | null
-    profiles?: { display_name: string | null; avatar_url: string | null } | null
-  }> = []
-
+  // Lấy related notes — KHÔNG join profiles để tránh lỗi TypeScript
   const { data: sameAuthorNotes } = await supabase
     .from('notes')
-    .select(
-      `
-      id,
-      title,
-      created_at,
-      cover_image_url,
-      profiles (
-        display_name,
-        avatar_url
-      )
-    `,
-    )
+    .select('id, title, created_at, cover_image_url')
     .eq('is_public', true)
     .eq('author_id', note.author_id)
     .neq('id', id)
     .order('created_at', { ascending: false })
     .limit(3)
 
-  relatedNotes = sameAuthorNotes ?? []
+  let relatedNotes = sameAuthorNotes ?? []
 
   if (relatedNotes.length === 0) {
     const { data: fallbackNotes } = await supabase
       .from('notes')
-      .select(
-        `
-        id,
-        title,
-        created_at,
-        cover_image_url,
-        profiles (
-          display_name,
-          avatar_url
-        )
-      `,
-      )
+      .select('id, title, created_at, cover_image_url')
       .eq('is_public', true)
       .neq('id', id)
       .order('created_at', { ascending: false })
@@ -105,6 +76,10 @@ export default async function NotePage({
 
     relatedNotes = fallbackNotes ?? []
   }
+
+  // Normalize profiles (Supabase trả về array hoặc object tuỳ query)
+  const profilesRaw = note.profiles
+  const profiles = Array.isArray(profilesRaw) ? profilesRaw[0] ?? null : profilesRaw ?? null
 
   return (
     <main className="max-w-5xl mx-auto px-4 py-8">
@@ -117,7 +92,9 @@ export default async function NotePage({
         </Link>
         <span className="text-xs uppercase tracking-[0.3em] text-emerald-700/80">Notion Mini</span>
       </div>
+
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_280px]">
+        {/* ── Main Article ── */}
         <article className="rounded-3xl border border-white/70 bg-white/80 p-6 shadow-xl shadow-amber-100/70 backdrop-blur">
           <header className="mb-8">
             {note.cover_image_url && (
@@ -129,23 +106,24 @@ export default async function NotePage({
                 />
               </div>
             )}
+
             <h1 className="text-4xl font-bold mb-4 text-slate-900">{note.title}</h1>
 
             <div className="flex flex-wrap items-center gap-4 text-sm text-slate-500">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-white/80 bg-emerald-50 text-sm font-semibold text-emerald-700">
-                  {note.profiles?.avatar_url ? (
+                  {profiles?.avatar_url ? (
                     <img
-                      src={note.profiles.avatar_url}
-                      alt={note.profiles.display_name || 'Ảnh đại diện'}
+                      src={profiles.avatar_url}
+                      alt={profiles.display_name || 'Ảnh đại diện'}
                       className="h-full w-full object-cover"
                     />
                   ) : (
-                    (note.profiles?.display_name || 'A').charAt(0).toUpperCase()
+                    (profiles?.display_name || 'A').charAt(0).toUpperCase()
                   )}
                 </div>
                 <span className="font-medium text-slate-700">
-                  {note.profiles?.display_name || 'Ẩn danh'}
+                  {profiles?.display_name || 'Ẩn danh'}
                 </span>
               </div>
               <span>•</span>
@@ -160,44 +138,53 @@ export default async function NotePage({
           </div>
         </article>
 
+        {/* ── Sidebar ── */}
         <aside className="space-y-4">
           <div className="rounded-3xl border border-white/70 bg-white/80 p-5 shadow-lg shadow-amber-100/70 backdrop-blur">
             <h2 className="text-sm font-semibold uppercase tracking-[0.25em] text-emerald-700/80">
               Bài liên quan
             </h2>
-            <p className="mt-2 text-sm text-slate-500">Khám phá thêm các ghi chú tương tự.</p>
+            <p className="mt-2 text-sm text-slate-500">
+              Khám phá thêm các ghi chú tương tự.
+            </p>
           </div>
 
-          {relatedNotes.map((related) => (
-            <Link
-              key={related.id}
-              href={`/notes/${related.id}`}
-              className="group block rounded-3xl border border-white/70 bg-white/85 p-4 shadow-lg shadow-amber-100/70 backdrop-blur transition hover:-translate-y-1 hover:shadow-2xl"
-            >
-              <div className="flex items-start gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/80 bg-emerald-50 text-xs font-semibold text-emerald-700">
-                  {related.profiles?.avatar_url ? (
+          {relatedNotes.length > 0 ? (
+            relatedNotes.map((related) => (
+              <Link
+                key={related.id}
+                href={`/notes/${related.id}`}
+                className="group block rounded-3xl border border-white/70 bg-white/85 p-4 shadow-lg shadow-amber-100/70 backdrop-blur transition hover:-translate-y-1 hover:shadow-2xl"
+              >
+                {related.cover_image_url && (
+                  <div className="mb-3 overflow-hidden rounded-2xl">
                     <img
-                      src={related.profiles.avatar_url}
-                      alt={related.profiles.display_name || 'Ảnh đại diện'}
-                      className="h-full w-full object-cover"
+                      src={related.cover_image_url}
+                      alt={related.title}
+                      className="h-24 w-full object-cover"
                     />
-                  ) : (
-                    (related.profiles?.display_name || 'A').charAt(0).toUpperCase()
-                  )}
+                  </div>
+                )}
+                <div className="flex items-start gap-3">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-emerald-50 text-xs font-semibold text-emerald-700">
+                    {related.title.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-slate-900 transition group-hover:text-emerald-700 line-clamp-2">
+                      {related.title}
+                    </p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {new Date(related.created_at).toLocaleDateString('vi-VN')}
+                    </p>
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <p className="text-sm font-semibold text-slate-900 transition group-hover:text-emerald-700">
-                    {related.title}
-                  </p>
-                  <p className="mt-1 text-xs text-slate-500">
-                    {related.profiles?.display_name || 'Ẩn danh'} •{' '}
-                    {new Date(related.created_at).toLocaleDateString('vi-VN')}
-                  </p>
-                </div>
-              </div>
-            </Link>
-          ))}
+              </Link>
+            ))
+          ) : (
+            <div className="rounded-3xl border border-white/70 bg-white/60 p-4 text-center text-sm text-slate-400">
+              Chưa có bài liên quan
+            </div>
+          )}
         </aside>
       </div>
     </main>
