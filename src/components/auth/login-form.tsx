@@ -44,10 +44,14 @@ export function LoginForm() {
   const handleGitHubLogin = async () => {
     setError(null)
 
+    const baseUrl =
+      process.env.NEXT_PUBLIC_SITE_URL ??
+      window.location.origin.replace('://0.0.0.0', '://localhost')
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'github',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: `${baseUrl}/auth/callback`,
       },
     })
 
@@ -55,6 +59,8 @@ export function LoginForm() {
       setError(error.message)
     }
   }
+
+  
 
   return (
     <div className="mt-8 space-y-6">

@@ -4,12 +4,14 @@ import { NextResponse } from 'next/server'
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get('code')
-  const origin = requestUrl.origin
+  const origin = requestUrl.origin.replace('://0.0.0.0', '://localhost')
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
+  const redirectBase = siteUrl ?? origin
 
   if (code) {
     const supabase = await createClient()
     await supabase.auth.exchangeCodeForSession(code)
   }
 
-  return NextResponse.redirect(`${origin}/dashboard`)
+  return NextResponse.redirect(`${redirectBase}/dashboard`)
 }
